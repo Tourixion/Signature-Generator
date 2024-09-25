@@ -1,8 +1,6 @@
 name: Standardize Signatures from GitHub Gist (CSV)
 
 on:
-  schedule:
-    - cron: '0 0 * * *'  # Run daily at midnight UTC
   workflow_dispatch:  # Allow manual triggering
 
 jobs:
@@ -11,8 +9,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v2
@@ -30,12 +26,15 @@ jobs:
           GIST_ID: ${{ secrets.GIST_ID }}
         run: python email_signature_generator.py
 
-      - name: Commit and push changes
-        env:
-          GITHUB_TOKEN: ${{ secrets.GIST_TOKEN }}
+      - name: Commit files
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git add .
-          git diff --quiet && git diff --staged --quiet || (git commit -m "Update standardized signatures")
-          git push https://${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git HEAD:${GITHUB_REF}
+          git diff --quiet && git diff --staged --quiet || git commit -m "Update standardized signatures"
+      
+      - name: Push changes
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GIST_TOKEN }}
+          branch: ${{ github.ref }}
