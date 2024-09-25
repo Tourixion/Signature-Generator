@@ -1,0 +1,35 @@
+name: Standardize Signatures
+
+on:
+  push:
+    paths:
+      - 'signatures.json'
+      - 'example_signature.txt'
+
+jobs:
+  standardize_signatures:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install jinja2
+
+      - name: Run signature standardizer
+        run: python standardize_signatures.py
+
+      - name: Commit changes
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add standardized_signatures.txt
+          git commit -m "Update standardized signatures" || echo "No changes to commit"
+          git push
