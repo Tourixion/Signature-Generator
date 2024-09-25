@@ -1,9 +1,15 @@
 import json
+import os
+import requests
 from jinja2 import Template
 
-def load_json(filename):
-    with open(filename, 'r') as f:
-        return json.load(f)
+def load_json_from_gist(gist_id, github_token):
+    headers = {'Authorization': f'token {github_token}'}
+    response = requests.get(f'https://api.github.com/gists/{gist_id}', headers=headers)
+    response.raise_for_status()
+    gist = response.json()
+    file_content = list(gist['files'].values())[0]['content']
+    return json.loads(file_content)
 
 def load_example_signature(filename):
     with open(filename, 'r') as f:
@@ -21,8 +27,12 @@ def save_standardized_signatures(signatures, filename):
             f.write(sig + '\n\n')
 
 def main():
-    # Load data
-    signatures = load_json('signatures.json')
+    # Load data from GitHub Gist
+    gist_id = os.environ['GIST_ID']
+    github_token = os.environ['GITHUB_TOKEN']
+    signatures = load_json_from_gist(gist_id, github_token)
+    
+    # Load example signature
     example_signature = load_example_signature('example_signature.txt')
     
     # Create template from example signature
