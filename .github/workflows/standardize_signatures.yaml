@@ -1,4 +1,4 @@
-name: Standardize Signatures from GitHub Gist
+name: Standardize Signatures from GitHub Gist (CSV)
 
 on:
   schedule:
@@ -24,7 +24,7 @@ jobs:
 
       - name: Run signature standardizer
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
           GIST_ID: ${{ secrets.GIST_ID }}
         run: python email_signature_generator.py
 
@@ -32,6 +32,10 @@ jobs:
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
+          git add .
+          git commit -m "Update standardized signatures" || echo "No changes to commit"
+          git push
+
           git add .
           git commit -m "Update standardized signatures" || echo "No changes to commit"
           git push
