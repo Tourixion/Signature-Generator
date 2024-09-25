@@ -3,6 +3,9 @@ name: Standardize Signatures from GitHub Gist (CSV)
 on:
   workflow_dispatch:  # Allow manual triggering
 
+permissions:
+  contents: write
+
 jobs:
   standardize_signatures:
     runs-on: ubuntu-latest
@@ -26,15 +29,11 @@ jobs:
           GIST_ID: ${{ secrets.GIST_ID }}
         run: python email_signature_generator.py
 
-      - name: Commit files
+      - name: Commit and push changes
         run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
           git add .
-          git diff --quiet && git diff --staged --quiet || git commit -m "Update standardized signatures"
-      
-      - name: Push changes
-        uses: ad-m/github-push-action@master
-        with:
-          github_token: ${{ secrets.GIST_TOKEN }}
-          branch: ${{ github.ref }}
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Update standardized signatures" && git push)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
