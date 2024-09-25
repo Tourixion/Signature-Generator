@@ -1,48 +1,51 @@
 import json
-import os
 import requests
 from jinja2 import Template
+import os
 
-def load_json_from_gist(gist_id, github_token):
+def get_gist_content(gist_id, filename):
+    github_token = os.environ['GITHUB_TOKEN']
     headers = {'Authorization': f'token {github_token}'}
     response = requests.get(f'https://api.github.com/gists/{gist_id}', headers=headers)
     response.raise_for_status()
     gist = response.json()
-    file_content = list(gist['files'].values())[0]['content']
-    return json.loads(file_content)
+    return gist['files'][filename]['content']
 
-def load_example_signature(filename):
-    with open(filename, 'r') as f:
-        return f.read()
+def load_template(gist_id, template_filename):
+    return get_gist_content(gist_id, template_filename)
 
-def standardize_signatures(signatures, template):
-    standardized = []
-    for sig in signatures:
-        standardized.append(template.render(sig))
-    return standardized
+def load_user_data(gist_id, user_data_filename):
+    content = get_gist_content(gist_id, user_data_filename)
+    return json.loads(content)
 
-def save_standardized_signatures(signatures, filename):
-    with open(filename, 'w') as f:
-        for sig in signatures:
-            f.write(sig + '\n\n')
+def generate_signature(template_str, user_data):
+    template = Template(template_str)
+    return template.render(user_data)
+
+def save_signature_to_gist(signature, gist_id, output_filename):
+    github_token = os.environ['GITHUB_TOKEN']
+    headers = {
+        'Authorization': f'token {github_token}',
+        'Accept': 'application/vnd.github.v3+json'
+    }
+    data = {
+        'files': {
+            output_filename: {
+                'content': signature
+            }
+        }
+    }
+    response = requests.patch(f'https://api.github.com/gists/{gist_id}', headers=headers, json=data)
+    response.raise_for_status()
+    print(f"Email signature saved to Gist: {response.json()['html_url']}")
 
 def main():
-    # Load data from GitHub Gist
     gist_id = os.environ['GIST_ID']
-    github_token = os.environ['GITHUB_TOKEN']
-    signatures = load_json_from_gist(gist_id, github_token)
-    
-    # Load example signature
-    example_signature = load_example_signature('example_signature.txt')
-    
-    # Create template from example signature
-    template = Template(example_signature)
-    
-    # Standardize signatures
-    standardized_signatures = standardize_signatures(signatures, template)
-    
-    # Save standardized signatures
-    save_standardized_signatures(standardized_signatures, 'standardized_signatures.txt')
+    template = load_template(gist_id, 'email_signature_template.html')
+    user_data = load_user_data(gist_id, 'user_data.json')
+    signature = generate_signature(template, user_data)
+    save_signature_to_gist(signature, gist_id, 'generated_signature.html')
+    print("Email signature generated successfully!")
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
