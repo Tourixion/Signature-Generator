@@ -19,14 +19,21 @@ def load_user_data(gist_id, user_data_filename):
     content = get_gist_content(gist_id, user_data_filename)
     csv_file = io.StringIO(content)
     csv_reader = csv.DictReader(csv_file)
-    return list(csv_reader)
+    users_data = []
+    for row in csv_reader:
+        # Remove any empty keys (which could be caused by trailing commas)
+        cleaned_row = {k: v for k, v in row.items() if k}
+        users_data.append(cleaned_row)
+    return users_data
 
 def generate_signatures(template_str, users_data):
     template = Template(template_str)
     signatures = []
     for user in users_data:
+        # Ensure all keys are strings and values are stripped of whitespace
+        user = {str(k): v.strip() if isinstance(v, str) else v for k, v in user.items()}
         # Split addresses into a list
-        user['addresses'] = [addr.strip() for addr in user.get('Address', '').split('|')]
+        user['addresses'] = [addr.strip() for addr in user.get('Address', '').split('|') if addr.strip()]
         signature = template.render(user)
         signatures.append(signature)
     return signatures
