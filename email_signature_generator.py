@@ -23,7 +23,13 @@ def load_user_data(gist_id, user_data_filename):
 
 def generate_signatures(template_str, users_data):
     template = Template(template_str)
-    return [template.render(user) for user in users_data]
+    signatures = []
+    for user in users_data:
+        # Split addresses into a list
+        user['addresses'] = [addr.strip() for addr in user.get('Address', '').split('|')]
+        signature = template.render(user)
+        signatures.append(signature)
+    return signatures
 
 def save_signatures_to_gist(signatures, gist_id, output_filename):
     gist_token = os.environ['GIST_TOKEN']
@@ -31,7 +37,8 @@ def save_signatures_to_gist(signatures, gist_id, output_filename):
         'Authorization': f'token {gist_token}',
         'Accept': 'application/vnd.github.v3+json'
     }
-    content = "\n\n".join(signatures)
+    separator = "\n\n" + "="*50 + "\n\n"  # Non-code separator
+    content = separator.join(signatures)
     data = {
         'files': {
             output_filename: {
